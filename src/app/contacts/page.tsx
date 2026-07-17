@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { getBaseUrl } from '@/lib/getBaseUrl'
 import { getDisplayName } from '@/features/contacts/lib/contacts'
 import { ComplianceBadge } from '@/features/contacts/components/ComplianceBadge'
-import type { ComplianceStatus } from '@/features/contacts/lib/compliance'
+import type { ComplianceStatus, NormalizedSource } from '@/features/contacts/lib/compliance'
+import { SOURCE_LABEL } from '@/features/contacts/lib/compliance'
 import {
   Table,
   TableBody,
@@ -17,19 +18,9 @@ interface ContactListItem {
   full_name: string | null
   phone: string | null
   email: string | null
-  source: string
+  source: NormalizedSource
   lastInteractionAt: string | null
   compliance: ComplianceStatus
-}
-
-const SOURCE_LABEL: Record<string, string> = {
-  voice: 'Llamada',
-  whatsapp: 'WhatsApp',
-  website: 'Formulario web',
-  meta_ads: 'Meta Ads',
-  witei: 'Importado (Witei)',
-  crm: 'Importado (CRM)',
-  unknown: 'Origen desconocido',
 }
 
 async function getContactList(): Promise<ContactListItem[]> {

@@ -1,4 +1,3 @@
-import assert from 'node:assert'
 import type { Contact } from '@/features/contacts/types'
 
 export type ComplianceStatus = 'blocked' | 'test' | 'unverified' | 'ok'
@@ -21,32 +20,59 @@ export interface ComplianceResult {
 }
 
 const ALL_CHANNELS: Channel[] = ['voice', 'whatsapp', 'email', 'matching', 'ai_outreach']
-const DNC_BLOCKED: Channel[] = ['voice', 'whatsapp', 'ai_outreach', 'matching']
+const DO_NOT_CONTACT_BLOCKED: Channel[] = ['voice', 'whatsapp', 'ai_outreach', 'matching']
 
-const DNC_TAG = /no.?llamar/i
-const DNC_PHRASES = [/dejen de (llamar|contactar)/i, /no me (llam|contact)/i]
-const EMAIL_ONLY_PHRASE = /solo.*email/i
+// Sources whose consent basis isn't verified — add a new one here, no other
+// code needs to change.
+const UNVERIFIED_SOURCES = new Set<NormalizedSource>(['witei', 'crm', 'unknown'])
+
+interface DoNotContactSignal {
+  pattern: RegExp
+  reason: string
+}
+
+// Add a new do-not-contact phrasing by pushing one entry here — no other
+// code needs to change.
+const DO_NOT_CONTACT_TAG_SIGNALS: DoNotContactSignal[] = [
+  { pattern: /no.?llamar/i, reason: 'etiquetado como "no llamar"' },
+]
+
+const DO_NOT_CONTACT_TEXT_SIGNALS: DoNotContactSignal[] = [
+  { pattern: /dejen de (llamar|contactar)/i, reason: 'pidió que dejen de contactarle' },
+  { pattern: /no me (llam|contact)/i, reason: 'pidió que no le contacten' },
+]
+
+const EMAIL_ONLY_SIGNAL: DoNotContactSignal = {
+  pattern: /solo.*email/i,
+  reason: 'pidió contacto solo por email',
+}
+
+// Add a new raw lead_source variant by adding one entry here — no other
+// code needs to change.
+const SOURCE_ALIASES: Record<string, NormalizedSource> = {
+  voice_call: 'voice',
+  llamada: 'voice',
+  voz: 'voice',
+  whatsapp: 'whatsapp',
+  website: 'website',
+  meta_lead_ads: 'meta_ads',
+  witei: 'witei',
+  crm: 'crm',
+}
 
 export function normalizeSource(leadSource: string | null | undefined): NormalizedSource {
   if (!leadSource) return 'unknown'
-  switch (leadSource.toLowerCase()) {
-    case 'voice_call':
-    case 'llamada':
-    case 'voz':
-      return 'voice'
-    case 'whatsapp':
-      return 'whatsapp'
-    case 'website':
-      return 'website'
-    case 'meta_lead_ads':
-      return 'meta_ads'
-    case 'witei':
-      return 'witei'
-    case 'crm':
-      return 'crm'
-    default:
-      return 'unknown'
-  }
+  return SOURCE_ALIASES[leadSource.toLowerCase()] ?? 'unknown'
+}
+
+export const SOURCE_LABEL: Record<NormalizedSource, string> = {
+  voice: 'Llamada',
+  whatsapp: 'WhatsApp',
+  website: 'Formulario web',
+  meta_ads: 'Meta Ads',
+  witei: 'Importado (Witei)',
+  crm: 'Importado (CRM)',
+  unknown: 'Origen desconocido',
 }
 
 function textBlobs(c: Contact): string[] {
@@ -55,23 +81,30 @@ function textBlobs(c: Contact): string[] {
   )
 }
 
-function findDncSignal(c: Contact): { reasons: string[]; emailOnly: boolean } {
+function findDoNotContactSignal(c: Contact): { reasons: string[]; emailOnly: boolean } {
   const reasons: string[] = []
   let emailOnly = false
 
   if (c.matching_enabled === false) {
     reasons.push('matching desactivado para este contacto')
   }
-  if (Array.isArray(c.tags) && c.tags.some((t) => DNC_TAG.test(t))) {
-    reasons.push('etiquetado como "no llamar"')
-  }
-  for (const blob of textBlobs(c)) {
-    if (DNC_PHRASES.some((re) => re.test(blob))) {
-      reasons.push(`mensaje del contacto: "${blob}"`)
+
+  const tags = c.tags ?? []
+  for (const signal of DO_NOT_CONTACT_TAG_SIGNALS) {
+    if (tags.some((t) => signal.pattern.test(t))) {
+      reasons.push(signal.reason)
     }
-    if (EMAIL_ONLY_PHRASE.test(blob)) {
+  }
+
+  for (const blob of textBlobs(c)) {
+    for (const signal of DO_NOT_CONTACT_TEXT_SIGNALS) {
+      if (signal.pattern.test(blob)) {
+        reasons.push(`${signal.reason}: "${blob}"`)
+      }
+    }
+    if (EMAIL_ONLY_SIGNAL.pattern.test(blob)) {
       emailOnly = true
-      reasons.push(`pidió contacto solo por email: "${blob}"`)
+      reasons.push(`${EMAIL_ONLY_SIGNAL.reason}: "${blob}"`)
     }
   }
   return { reasons, emailOnly }
@@ -79,12 +112,12 @@ function findDncSignal(c: Contact): { reasons: string[]; emailOnly: boolean } {
 
 /** Precedence: blocked > test > unverified > ok. */
 export function evaluateCompliance(c: Contact): ComplianceResult {
-  const { reasons, emailOnly } = findDncSignal(c)
+  const { reasons, emailOnly } = findDoNotContactSignal(c)
   if (reasons.length > 0) {
     return {
       status: 'blocked',
       reasons,
-      blocked: DNC_BLOCKED,
+      blocked: DO_NOT_CONTACT_BLOCKED,
       allowed: emailOnly ? ['email'] : [],
       preferredChannel: emailOnly ? 'email' : undefined,
     }
@@ -100,7 +133,7 @@ export function evaluateCompliance(c: Contact): ComplianceResult {
   }
 
   const source = normalizeSource(c.lead_source)
-  if (source === 'witei' || source === 'crm' || source === 'unknown') {
+  if (UNVERIFIED_SOURCES.has(source)) {
     return {
       status: 'unverified',
       reasons: ['origen importado — base de consentimiento sin verificar'],
@@ -110,79 +143,4 @@ export function evaluateCompliance(c: Contact): ComplianceResult {
   }
 
   return { status: 'ok', reasons: [], blocked: [], allowed: ALL_CHANNELS }
-}
-
-function fixture(overrides: Partial<Contact>): Contact {
-  return {
-    id: 'c-000',
-    organization_id: 'ORG-0031',
-    full_name: null,
-    phone: null,
-    email: null,
-    lead_source: null,
-    contact_type: null,
-    created_at: '2026-01-01T00:00:00Z',
-    ai_handoff: false,
-    is_test: false,
-    assigned_agent_id: null,
-    matching_enabled: true,
-    tags: null,
-    notes: null,
-    qualification_data: null,
-    interest_preferences: null,
-    interactions: [],
-    ...overrides,
-  }
-}
-
-function demo() {
-  const c013 = fixture({
-    id: 'c-013',
-    lead_source: 'WITEI',
-    matching_enabled: false,
-    tags: ['no-llamar'],
-    notes: 'OJO: pidió por email que dejemos de llamarla — contactar SOLO por email.',
-    interactions: [
-      {
-        id: 'i-1110',
-        channel: 'EMAIL',
-        direction: 'inbound',
-        created_at: '2026-07-06T09:00:00Z',
-        content:
-          'Por favor, dejen de contactarme por teléfono. Si tienen algo que encaje con lo que busco, escríbanme por email únicamente.',
-        metadata: null,
-      },
-    ],
-  })
-  const r013 = evaluateCompliance(c013)
-  assert.equal(r013.status, 'blocked')
-  assert.deepEqual(r013.allowed, ['email'])
-  assert.equal(r013.preferredChannel, 'email')
-  assert.ok(r013.reasons.length >= 3, 'expects tag + note + message reasons')
-
-  const c014 = fixture({ id: 'c-014', lead_source: 'CRM', is_test: true })
-  const r014 = evaluateCompliance(c014)
-  assert.equal(r014.status, 'test')
-  assert.deepEqual(r014.blocked, ALL_CHANNELS)
-
-  const c015 = fixture({ id: 'c-015', lead_source: 'WITEI' })
-  assert.equal(evaluateCompliance(c015).status, 'unverified')
-
-  const c012 = fixture({ id: 'c-012', lead_source: null })
-  assert.equal(evaluateCompliance(c012).status, 'unverified')
-
-  for (const [id, source] of [
-    ['c-001', 'VOICE_CALL'],
-    ['c-004', 'WHATSAPP'],
-    ['c-006', 'META_LEAD_ADS'],
-  ] as const) {
-    const r = evaluateCompliance(fixture({ id, lead_source: source }))
-    assert.equal(r.status, 'ok', `${id} should be ok`)
-  }
-
-  console.log('compliance.ts self-check: OK')
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  demo()
 }

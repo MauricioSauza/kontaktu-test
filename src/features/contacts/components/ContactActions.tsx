@@ -1,12 +1,7 @@
 import { Mail, MessageCircle, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Channel, ComplianceResult } from '@/features/contacts/lib/compliance'
-
-// Minimal href-only cleanup (display keeps the raw string) — full phone
-// normalization is out of scope for US10, owned by a separate user story.
-function cleanDigits(phone: string) {
-  return phone.replace(/\D/g, '')
-}
+import { toE164 } from '@/features/contacts/lib/normalize-phone'
 
 interface ActionDef {
   channel: Channel
@@ -25,18 +20,20 @@ export function ContactActions({
   email: string | null
   compliance: ComplianceResult
 }) {
+  const e164 = toE164(phone)
+
   const actions: ActionDef[] = [
     {
       channel: 'voice',
       label: 'Llamar',
       icon: Phone,
-      href: phone ? `tel:+${cleanDigits(phone)}` : null,
+      href: e164 ? `tel:${e164}` : null,
     },
     {
       channel: 'whatsapp',
       label: 'WhatsApp',
       icon: MessageCircle,
-      href: phone ? `https://wa.me/${cleanDigits(phone)}` : null,
+      href: e164 ? `https://wa.me/${e164.slice(1)}` : null,
       external: true,
     },
     {

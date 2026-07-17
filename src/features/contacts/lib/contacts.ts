@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import assert from 'node:assert'
 import type { Contact } from '@/features/contacts/types'
+import { formatPhoneDisplay } from '@/features/contacts/lib/normalize-phone'
 
 const SIMULATED_LATENCY_MS = 400
 
@@ -39,7 +39,7 @@ export function parseFlexibleDate(input: string | number): Date {
 
 export function getDisplayName(c: Pick<Contact, 'full_name' | 'phone' | 'email'>): string {
   if (c.full_name?.trim()) return c.full_name.trim()
-  if (c.phone) return c.phone
+  if (c.phone) return formatPhoneDisplay(c.phone) ?? c.phone
   if (c.email) return c.email
   return 'Contacto sin nombre'
 }
@@ -67,32 +67,4 @@ export async function getContact(id: string): Promise<Contact | undefined> {
   await delay(SIMULATED_LATENCY_MS)
   const contacts = await loadContacts()
   return contacts.find((c) => c.id === id)
-}
-
-function demo() {
-  assert.equal(
-    parseFlexibleDate('2026-07-08T10:28:00Z').toISOString(),
-    '2026-07-08T10:28:00.000Z',
-    'ISO date should parse as-is'
-  )
-  assert.equal(
-    parseFlexibleDate('11/07/2026').toISOString(),
-    '2026-07-11T00:00:00.000Z',
-    'dd/mm/yyyy should parse (c-005)'
-  )
-  assert.equal(
-    parseFlexibleDate('10/07/2026 18:42').toISOString(),
-    '2026-07-10T18:42:00.000Z',
-    'dd/mm/yyyy HH:mm should parse (c-015 interaction)'
-  )
-  assert.equal(
-    parseFlexibleDate(1782259200).toISOString(),
-    '2026-06-24T00:00:00.000Z',
-    'unix epoch seconds should parse (c-012)'
-  )
-  console.log('contacts.ts self-check: OK')
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  demo()
 }

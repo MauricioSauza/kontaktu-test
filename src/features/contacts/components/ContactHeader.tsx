@@ -3,17 +3,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import type { Contact } from '@/features/contacts/types'
 import { getDisplayName, parseFlexibleDate } from '@/features/contacts/lib/contacts'
-import { normalizeSource } from '@/features/contacts/lib/compliance'
-
-const SOURCE_LABEL: Record<string, string> = {
-  voice: 'Llamada',
-  whatsapp: 'WhatsApp',
-  website: 'Formulario web',
-  meta_ads: 'Meta Ads',
-  witei: 'Importado (Witei)',
-  crm: 'Importado (CRM)',
-  unknown: 'Origen desconocido',
-}
+import { normalizeSource, SOURCE_LABEL } from '@/features/contacts/lib/compliance'
+import { formatPhoneDisplay } from '@/features/contacts/lib/normalize-phone'
 
 function getInitials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean)
@@ -26,6 +17,7 @@ export function ContactHeader({ contact }: { contact: Contact }) {
   const hasRealName = !!contact.full_name?.trim()
   const source = normalizeSource(contact.lead_source)
   const createdAt = parseFlexibleDate(contact.created_at)
+  const phoneDisplay = formatPhoneDisplay(contact.phone) ?? contact.phone
 
   return (
     <div className="flex items-start gap-4">
@@ -38,7 +30,7 @@ export function ContactHeader({ contact }: { contact: Contact }) {
         <h1 className="text-xl font-semibold text-foreground">{name}</h1>
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <Badge variant="outline">{SOURCE_LABEL[source]}</Badge>
-          {contact.phone && <span>{contact.phone}</span>}
+          {phoneDisplay && <span>{phoneDisplay}</span>}
           <span>Alta: {createdAt.toLocaleDateString('es-ES')}</span>
         </div>
       </div>
