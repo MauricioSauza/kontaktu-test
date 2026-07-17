@@ -1,6 +1,6 @@
 import { Mail, MessageCircle, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { Channel, ComplianceResult } from '@/lib/compliance'
+import type { Channel, ComplianceResult } from '@/features/contacts/lib/compliance'
 
 // Minimal href-only cleanup (display keeps the raw string) — full phone
 // normalization is out of scope for US10, owned by a separate user story.

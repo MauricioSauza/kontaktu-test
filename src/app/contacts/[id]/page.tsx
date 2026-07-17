@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation'
 import { getBaseUrl } from '@/lib/getBaseUrl'
-import type { Contact } from '@/lib/contacts'
-import type { ComplianceResult } from '@/lib/compliance'
-import { ContactHeader } from '@/components/contact/ContactHeader'
-import { ContactActions } from '@/components/contact/ContactActions'
-import { ComplianceBanner } from '@/components/compliance/ComplianceBanner'
+import type { Contact } from '@/features/contacts/types'
+import type { ComplianceResult } from '@/features/contacts/lib/compliance'
+import { ContactHeader } from '@/features/contacts/components/ContactHeader'
+import { ContactActions } from '@/features/contacts/components/ContactActions'
+import { ComplianceBanner } from '@/features/contacts/components/ComplianceBanner'
 import { Card } from '@/components/ui/card'
 
 interface ContactDetailResponse {

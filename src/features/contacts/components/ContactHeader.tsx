@@ -1,9 +1,9 @@
 import { User } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import type { Contact } from '@/lib/contacts'
-import { getDisplayName, parseFlexibleDate } from '@/lib/contacts'
-import { normalizeSource } from '@/lib/compliance'
+import type { Contact } from '@/features/contacts/types'
+import { getDisplayName, parseFlexibleDate } from '@/features/contacts/lib/contacts'
+import { normalizeSource } from '@/features/contacts/lib/compliance'
 
 const SOURCE_LABEL: Record<string, string> = {
   voice: 'Llamada',

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getContacts, parseFlexibleDate } from '@/lib/contacts'
-import { evaluateCompliance, normalizeSource } from '@/lib/compliance'
+import { getContacts, parseFlexibleDate } from '@/features/contacts/lib/contacts'
+import { evaluateCompliance, normalizeSource } from '@/features/contacts/lib/compliance'
 
 export async function GET() {
   const contacts = await getContacts()

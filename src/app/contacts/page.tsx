@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { getBaseUrl } from '@/lib/getBaseUrl'
-import { getDisplayName } from '@/lib/contacts'
-import { ComplianceBadge } from '@/components/compliance/ComplianceBadge'
-import type { ComplianceStatus } from '@/lib/compliance'
+import { getDisplayName } from '@/features/contacts/lib/contacts'
+import { ComplianceBadge } from '@/features/contacts/components/ComplianceBadge'
+import type { ComplianceStatus } from '@/features/contacts/lib/compliance'
 import {
   Table,
   TableBody,
@@ -41,7 +41,7 @@ async function getContactList(): Promise<ContactListItem[]> {
 
 export default async function ContactsPage() {
   const contacts = await getContactList()
-  console.log(contacts)
+
   return (
     <main className="mx-auto max-w-4xl p-6">
       <h1 className="mb-4 text-xl font-semibold text-foreground">Contactos</h1>

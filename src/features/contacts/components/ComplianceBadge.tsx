@@ -1,6 +1,6 @@
 import { Ban, FlaskConical, ShieldAlert } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import type { ComplianceStatus } from '@/lib/compliance'
+import type { ComplianceStatus } from '@/features/contacts/lib/compliance'
 
 const CONFIG: Partial<
   Record<ComplianceStatus, { label: string; icon: typeof Ban; className: string }>

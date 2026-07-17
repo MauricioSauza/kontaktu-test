@@ -1,36 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import assert from 'node:assert'
-
-export interface Interaction {
-  id: string
-  channel: string
-  direction: 'inbound' | 'outbound'
-  created_at: string | number
-  content: string
-  metadata: Record<string, unknown> | null
-}
-
-export interface Contact {
-  id: string
-  organization_id: string
-  full_name: string | null
-  phone: string | null
-  email: string | null
-  lead_source: string | null
-  contact_type: string | null
-  created_at: string | number
-  ai_handoff: boolean
-  is_test: boolean
-  assigned_agent_id: string | null
-  matching_enabled: boolean
-  tags: string[] | null
-  notes: string | null
-  // Not needed for US10 (R3 owns rendering it); shape varies (object|string|null).
-  qualification_data: unknown
-  interest_preferences: Record<string, unknown> | null
-  interactions: Interaction[]
-}
+import type { Contact } from '@/features/contacts/types'
 
 const SIMULATED_LATENCY_MS = 400
 
@@ -39,14 +10,19 @@ const SIMULATED_LATENCY_MS = 400
  * See c-005 (dd/mm/yyyy), c-012 (epoch seconds), c-015 (both dd/mm/yyyy forms).
  */
 export function parseFlexibleDate(input: string | number): Date {
+  // c-012: unix epoch seconds (not ms) — e.g. 1782259200.
   if (typeof input === 'number') {
     return new Date(input * 1000)
   }
 
+  // ISO 8601 — e.g. "2026-07-08T10:28:00Z". Native Date parses this natively.
   if (/^\d{4}-\d{2}-\d{2}/.test(input)) {
     return new Date(input)
   }
 
+  // c-005/c-012/c-015: dd/mm/yyyy, optionally with " HH:mm" — e.g. "11/07/2026"
+  // or "10/07/2026 18:42". Built with Date.UTC so it can't be misread as
+  // mm/dd/yyyy by the runtime's locale.
   const match = input.match(
     /^(\d{2})\/(\d{2})\/(\d{4})(?: (\d{2}):(\d{2}))?$/
   )
@@ -57,6 +33,7 @@ export function parseFlexibleDate(input: string | number): Date {
     )
   }
 
+  // Fallback for any other shape — let the runtime take its best guess.
   return new Date(input)
 }
 

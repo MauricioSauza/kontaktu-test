@@ -1,7 +1,7 @@
 import { Ban, FlaskConical, ShieldAlert } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
-import type { ComplianceResult } from '@/lib/compliance'
+import type { ComplianceResult } from '@/features/contacts/lib/compliance'
 
 const CHANNEL_LABEL: Record<string, string> = {
   voice: 'llamada',

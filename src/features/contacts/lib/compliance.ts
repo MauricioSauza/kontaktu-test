@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import type { Contact } from './contacts'
+import type { Contact } from '@/features/contacts/types'
 
 export type ComplianceStatus = 'blocked' | 'test' | 'unverified' | 'ok'
 export type Channel = 'voice' | 'whatsapp' | 'email' | 'matching' | 'ai_outreach'

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getContact } from '@/lib/contacts'
-import { evaluateCompliance } from '@/lib/compliance'
+import { getContact } from '@/features/contacts/lib/contacts'
+import { evaluateCompliance } from '@/features/contacts/lib/compliance'
 
 export async function GET(
   _request: NextRequest,
